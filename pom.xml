@@ -55,9 +55,9 @@
 				<executions>
 					<execution>
 						<goals>
-							<goal>install</goal>
+							<goal>site</goal>
 						</goals>
-						<phase>install</phase>
+						<phase>site</phase>
 					</execution>
 				</executions>
 			</plugin>
