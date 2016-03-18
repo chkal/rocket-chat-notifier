@@ -4,9 +4,12 @@
 	<parent>
 		<groupId>org.jenkins-ci.plugins</groupId>
 		<artifactId>plugin</artifactId>
-		<version>1.424</version><!-- which version of Jenkins is this plugin built 
-			against? -->
+		<version>2.2</version>
 	</parent>
+
+	<properties>
+		<jenkins.version>1.653</jenkins.version>
+	</properties>
 
 	<groupId>com.baloise.jenkins.plugin</groupId>
 	<artifactId>rocket-chat-notifier</artifactId>
@@ -45,7 +48,7 @@
 					<message>releasing ${project.version}</message>
 					<outputDirectory>${project.build.directory}</outputDirectory>
 					<includes>
-					<include>rocket-chat-notifier.hpi</include>
+						<include>rocket-chat-notifier.hpi</include>
 					</includes>
 					<oauth2Token>${env.github_oauth2Token}</oauth2Token>
 				</configuration>
