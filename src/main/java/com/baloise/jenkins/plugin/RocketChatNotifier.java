@@ -65,17 +65,12 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
 	
 	private void chat(final String message, final TaskListener listener) {
 		if(listener != null) listener.getLogger().println(format("Notifying %s/%s '%s'", getDescriptor().getUrl(), getDescriptor().getRoom(), message));
-		new Thread() {
-			public void run() {
-				try {
-					getDescriptor().getRocketChatClient().send(getDescriptor().getRoom(), message);
-				} catch (IOException e) {
-					e.printStackTrace();
-					if(listener != null) listener.getLogger().println("Rocket.Chat Notification failed");
-				}
-				
-			};
-		}.start();
+		try {
+			getDescriptor().getRocketChatClient().send(getDescriptor().getRoom(), message);
+		} catch (IOException e) {
+			e.printStackTrace();
+			if(listener != null) listener.getLogger().println("Rocket.Chat Notification failed");
+		}
 	}
 
 	@Extension 
