@@ -19,15 +19,23 @@ import hudson.model.Descriptor;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.View;
 import hudson.model.listeners.RunListener;
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 @Extension
-public class RocketChatNotifier extends RunListener<Run<?, ?>>
-		implements Describable<RocketChatNotifier>, ExtensionPoint {
+public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Describable<RocketChatNotifier>, ExtensionPoint, ViewListener {
 
+	
+	ViewTracker viewTracker = new ViewTracker().addViewListener(this);
+	
+	@Override
+	public void fireViewChanged(View view, Result oldResult, Result newResult) {
+		chat(format("view/%s, %s -> %s", view.getDisplayName(), oldResult, newResult));
+	}
+	
 	@Override
 	public void onStarted(Run<?, ?> r, TaskListener listener) {
 		notify(r, listener);
@@ -39,16 +47,35 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>>
 	}
 	
 	public void notify(Run<?, ?> run, TaskListener listener) {
-		Result result = run.getResult();
-		String resultMessage = result == null ? "STARTED" : result.toString();
-		String message = format("%s, %s, %s, %s", run.getParent().getDisplayName(), run.getDisplayName(), resultMessage, run.getBuildStatusSummary().message);
-		if(listener != null) listener.getLogger().println(format("Notifying %s '%s'", getDescriptor().getUrl(), message));
-		try {
-			getDescriptor().getRocketChatClient().send(getDescriptor().getRoom(), message);
-		} catch (IOException e) {
-			e.printStackTrace();
-			if(listener != null) listener.getLogger().println("Rocket.Chat Notification failed");
+		if(getDescriptor().getNotifyBuilds()) {
+			String resultMessage = run.isBuilding() ? "STARTED" : run.getResult().toString();
+			String message = format("%s, %s, %s, %s", run.getParent().getDisplayName(), run.getDisplayName(), resultMessage, run.getBuildStatusSummary().message);
+			chat(message, listener);
 		}
+		if(getDescriptor().getNotifyViews()) {
+			viewTracker.trackViews(run);
+		} else {
+			viewTracker.disable();
+		}
+	}
+
+	private void chat(String message) {
+		chat(message, null);
+	}
+	
+	private void chat(final String message, final TaskListener listener) {
+		if(listener != null) listener.getLogger().println(format("Notifying %s/%s '%s'", getDescriptor().getUrl(), getDescriptor().getRoom(), message));
+		new Thread() {
+			public void run() {
+				try {
+					getDescriptor().getRocketChatClient().send(getDescriptor().getRoom(), message);
+				} catch (IOException e) {
+					e.printStackTrace();
+					if(listener != null) listener.getLogger().println("Rocket.Chat Notification failed");
+				}
+				
+			};
+		}.start();
 	}
 
 	@Extension 
@@ -62,6 +89,8 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>>
 		private String user;
 		private String password;
 		private String room;
+		private Boolean notifyBuildsDisabled;
+		private Boolean notifyViewsDisabled;
 
 		private transient RocketChatClient lazyRcClient;
 
@@ -170,6 +199,27 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>>
 
 		public void setRoom(String room) {
 			this.room = room;
+		}
+		
+		public boolean getNotifyBuilds() {
+			return getNotifyBuildsDisabled() == null || !getNotifyBuildsDisabled();
+		}
+		
+		public boolean getNotifyViews() {
+			return getNotifyViewsDisabled() == null || !getNotifyViewsDisabled();
+		}
+	
+		public Boolean getNotifyBuildsDisabled() {
+			return notifyBuildsDisabled;
+		}
+		public void setNotifyBuildsDisabled(Boolean notifyBuildsDisabled) {
+			this.notifyBuildsDisabled = notifyBuildsDisabled;
+		}
+		public Boolean getNotifyViewsDisabled() {
+			return notifyViewsDisabled;
+		}
+		public void setNotifyViewsDisabled(Boolean notifyViewsDisabled) {
+			this.notifyViewsDisabled = notifyViewsDisabled;
 		}
 
 	}
