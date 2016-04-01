@@ -1,6 +1,5 @@
 package com.baloise.jenkins.plugin;
 
-import java.beans.Statement;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -43,6 +42,7 @@ public class ViewTracker {
 
 	private TopLevelItem getTopLevelParent(Object o) {
 		if(o == null) return null;
+		if(o instanceof TopLevelItem) return (TopLevelItem) o;
 		Object parent = null;
 		try {
 			Method getParent = o.getClass().getMethod("getParent", null);
@@ -50,8 +50,7 @@ public class ViewTracker {
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			LOG.log(Level.WARNING,e.getMessage());
 		}
-		if(parent == null) return null;
-		return  parent instanceof TopLevelItem ? (TopLevelItem) parent : getTopLevelParent(parent);
+		return getTopLevelParent(parent);
 	}
 
 	public ViewTracker addViewListener(ViewListener listener) {
