@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import hudson.model.Job;
 import hudson.model.Result;
@@ -14,6 +16,9 @@ import hudson.model.View;
 import jenkins.model.Jenkins;
 
 public class ViewTracker {
+	
+	Logger LOG = Logger.getLogger(getClass().getName());
+	
 	Map<String, Result> results = new HashMap<>();
 	List<ViewListener> listeners = new ArrayList<>();
 	
@@ -21,10 +26,14 @@ public class ViewTracker {
 		Collection<View> views = Jenkins.getInstance().getViews();
 		List<View> affected = new ArrayList<>(views.size());
 		Job<?, ?> parent = run.getParent();
-		for (View view : views) {
-			if (view.contains((TopLevelItem) parent)) {
-				affected.add(view);
+		if (parent instanceof TopLevelItem) {
+			for (View view : views) {
+				if (view.contains((TopLevelItem) parent)) {
+					affected.add(view);
+				}
 			}
+		} else {
+			LOG.log(Level.WARNING, parent.getClass() + " not instanceof TopLevelItem");
 		}
 		return affected;
 	}
