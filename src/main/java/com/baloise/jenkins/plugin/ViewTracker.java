@@ -48,7 +48,7 @@ public class ViewTracker {
 			Method getParent = o.getClass().getMethod("getParent", null);
 			parent = getParent.invoke(o, null);
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			LOG.fine(e.getMessage());
+			LOG.log(Level.WARNING,e.getMessage());
 		}
 		if(parent == null) return null;
 		return  parent instanceof TopLevelItem ? (TopLevelItem) parent : getTopLevelParent(parent);
