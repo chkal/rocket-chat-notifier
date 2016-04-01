@@ -1,5 +1,8 @@
 package com.baloise.jenkins.plugin;
 
+import java.beans.Statement;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,17 +28,30 @@ public class ViewTracker {
 	private Collection<View> getViewsAffectedBy(Run<?, ?> run) {
 		Collection<View> views = Jenkins.getInstance().getViews();
 		List<View> affected = new ArrayList<>(views.size());
-		Job<?, ?> parent = run.getParent();
-		if (parent instanceof TopLevelItem) {
+		TopLevelItem parent = getTopLevelParent(run);
+		if (parent != null) {
 			for (View view : views) {
-				if (view.contains((TopLevelItem) parent)) {
+				if (view.contains(parent)) {
 					affected.add(view);
 				}
 			}
 		} else {
-			LOG.log(Level.WARNING, parent.getClass() + " not instanceof TopLevelItem");
+			LOG.log(Level.WARNING, run.getParent().getClass() + " not instanceof TopLevelItem");
 		}
 		return affected;
+	}
+
+	private TopLevelItem getTopLevelParent(Object o) {
+		if(o == null) return null;
+		Object parent = null;
+		try {
+			Method getParent = o.getClass().getMethod("getParent", null);
+			parent = getParent.invoke(o, null);
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			LOG.fine(e.getMessage());
+		}
+		if(parent == null) return null;
+		return  parent instanceof TopLevelItem ? (TopLevelItem) parent : getTopLevelParent(parent);
 	}
 
 	public ViewTracker addViewListener(ViewListener listener) {
