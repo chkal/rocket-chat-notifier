@@ -23,15 +23,10 @@ import java.util.Set;
 import static java.lang.String.format;
 
 @Extension
-public class RocketChatNotifier extends RunListener implements Describable<RocketChatNotifier>, ExtensionPoint {
+public class RocketChatNotifier extends RunListener<Run<?,?>> implements Describable<RocketChatNotifier>, ExtensionPoint {
 
   @Override
-  public void onStarted(Run run, TaskListener listener) {
-    // nothing to do here
-  }
-
-  @Override
-  public void onCompleted(Run run, TaskListener listener) {
+  public void onCompleted(Run<?,?> run, TaskListener listener) {
 
     String notifyText = getNotifyText(run);
 
