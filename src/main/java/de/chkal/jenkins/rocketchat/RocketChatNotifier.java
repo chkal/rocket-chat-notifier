@@ -23,26 +23,16 @@ import java.util.Set;
 import static java.lang.String.format;
 
 @Extension
-public class RocketChatNotifier extends RunListener<Run<?,?>> implements Describable<RocketChatNotifier>, ExtensionPoint {
+public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Describable<RocketChatNotifier>, ExtensionPoint {
 
   @Override
-  public void onCompleted(Run<?,?> run, TaskListener listener) {
+  public void onCompleted(Run<?, ?> run, TaskListener listener) {
 
     String notifyText = getNotifyText(run);
 
     if (notifyText != null) {
-
-      StringBuilder message = new StringBuilder();
-
-      message.append(run.getFullDisplayName());
-      message.append(": ");
-      message.append(notifyText);
-      message.append(" (");
-      message.append(run.getBuildStatusSummary());
-      message.append(")");
-
-      chat(message.toString(), listener);
-
+      String message = String.format("%s: %s", run.getFullDisplayName(), notifyText);
+      chat(message, listener);
     }
 
   }
@@ -56,15 +46,15 @@ public class RocketChatNotifier extends RunListener<Run<?,?>> implements Describ
     if (previous != null) {
 
       if (isFailed(result) && result.equals(previous)) {
-        return "Build still " + result.toString();
+        return "Job status is still " + result.toString();
       }
 
       if (isFailed(previous) && !isFailed(result)) {
-        return "Build back to " + result.toString();
+        return "Job is back to " + result.toString();
       }
 
       if (!isFailed(previous) && isFailed(result)) {
-        return "Build status " + result.toString();
+        return "Job status is " + result.toString();
       }
 
     }
@@ -72,12 +62,12 @@ public class RocketChatNotifier extends RunListener<Run<?,?>> implements Describ
     // no previous build
     else {
       if (isFailed(result)) {
-        return "Build status " + result.toString();
+        return "Job status is " + result.toString();
       }
     }
 
     return null;
-    
+
   }
 
   private boolean isFailed(Result result) {
