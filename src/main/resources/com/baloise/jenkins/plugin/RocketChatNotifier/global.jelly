@@ -1,33 +1,33 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
-	xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-	<!-- This Jelly script is used to produce the global configuration option. 
-		Jenkins uses a set of tag libraries to provide uniformity in forms. To determine 
-		where this tag is defined, first check the namespace URI, and then look under 
-		$JENKINS/views/. For example, <f:section> is defined in $JENKINS/views/lib/form/section.jelly. 
-		It's also often useful to just check other similar scripts to see what tags 
-		they use. Views are always organized according to its owner class, so it 
-		should be straightforward to find them. -->
-	<f:section title="Rocket.Chat Notifier">
-		<f:entry title="Disable build notifications" field="notifyBuildsDisabled">
-			<f:checkbox default="checked"/>
-		</f:entry>
-		<f:entry title="Disable view notifications" field="notifyViewsDisabled">
-			<f:checkbox default="checked"/>
-		</f:entry>
-		<f:entry title="URL" field="url">
-			<f:textbox />
-		</f:entry>
-		<f:entry title="Room" field="room">
-			<f:textbox />
-		</f:entry>
-		<f:entry title="User ID" field="user">
-			<f:textbox />
-		</f:entry>
-		<f:entry title="Password" field="password">
-			<f:password />
-		</f:entry>
-		<f:validateButton title="${%Test Connection}"
-			progress="${%Testing...}" method="testConnection" with="url,room,user,password" />
-	</f:section>
+  xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <!-- This Jelly script is used to produce the global configuration option. 
+    Jenkins uses a set of tag libraries to provide uniformity in forms. To determine 
+    where this tag is defined, first check the namespace URI, and then look under 
+    $JENKINS/views/. For example, <f:section> is defined in $JENKINS/views/lib/form/section.jelly. 
+    It's also often useful to just check other similar scripts to see what tags 
+    they use. Views are always organized according to its owner class, so it 
+    should be straightforward to find them. -->
+  <f:section title="Rocket.Chat Notifier">
+    <f:entry title="Disable build notifications" field="notifyBuildsDisabled">
+      <f:checkbox default="checked"/>
+    </f:entry>
+    <f:entry title="Disable view notifications" field="notifyViewsDisabled">
+      <f:checkbox default="checked"/>
+    </f:entry>
+    <f:entry title="URL" field="url">
+      <f:textbox />
+    </f:entry>
+    <f:entry title="Room" field="room">
+      <f:textbox />
+    </f:entry>
+    <f:entry title="User ID" field="user">
+      <f:textbox />
+    </f:entry>
+    <f:entry title="Password" field="password">
+      <f:password />
+    </f:entry>
+    <f:validateButton title="${%Test Connection}"
+      progress="${%Testing...}" method="testConnection" with="url,room,user,password" />
+  </f:section>
 </j:jelly>

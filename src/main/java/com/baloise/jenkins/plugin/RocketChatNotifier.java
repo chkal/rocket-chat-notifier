@@ -28,198 +28,205 @@ import net.sf.json.JSONObject;
 @Extension
 public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Describable<RocketChatNotifier>, ExtensionPoint, ViewListener {
 
-	
-	ViewTracker viewTracker = new ViewTracker().addViewListener(this);
-	
-	@Override
-	public void fireViewChanged(View view, Result oldResult, Result newResult) {
-		chat(format("view/%s, %s -> %s", view.getDisplayName(), oldResult, newResult));
-	}
-	
-	@Override
-	public void onStarted(Run<?, ?> r, TaskListener listener) {
-		notify(r, listener);
-	}
-	
-	@Override
-	public void onCompleted(Run<?, ?> r, TaskListener listener) {
-		notify(r, listener);
-	}
-	
-	public void notify(Run<?, ?> run, TaskListener listener) {
-		if(getDescriptor().getNotifyBuilds()) {
-			String resultMessage = run.isBuilding() ? "STARTED" : run.getResult().toString();
-			String message = format("%s, %s, %s, %s", run.getParent().getDisplayName(), run.getDisplayName(), resultMessage, run.getBuildStatusSummary().message);
-			chat(message, listener);
-		}
-		if(getDescriptor().getNotifyViews()) {
-			viewTracker.trackViews(run);
-		} else {
-			viewTracker.disable();
-		}
-	}
 
-	private void chat(String message) {
-		chat(message, null);
-	}
-	
-	private void chat(final String message, final TaskListener listener) {
-		if(listener != null) listener.getLogger().println(format("Notifying %s/%s '%s'", getDescriptor().getUrl(), getDescriptor().getRoom(), message));
-		try {
-			getDescriptor().getRocketChatClient().send(getDescriptor().getRoom(), message);
-		} catch (IOException e) {
-			e.printStackTrace();
-			if(listener != null) listener.getLogger().println("Rocket.Chat Notification failed");
-		}
-	}
+  ViewTracker viewTracker = new ViewTracker().addViewListener(this);
 
-	@Extension 
-	public static final class DescriptorImpl extends Descriptor<RocketChatNotifier> {
+  @Override
+  public void fireViewChanged(View view, Result oldResult, Result newResult) {
+    chat(format("view/%s, %s -> %s", view.getDisplayName(), oldResult, newResult));
+  }
 
-		 public DescriptorImpl() {
-	            load();
-	     }
-		
-		private String url;
-		private String user;
-		private String password;
-		private String room;
-		private Boolean notifyBuildsDisabled;
-		private Boolean notifyViewsDisabled;
+  @Override
+  public void onStarted(Run<?, ?> r, TaskListener listener) {
+    notify(r, listener);
+  }
 
-		private transient RocketChatClient lazyRcClient;
+  @Override
+  public void onCompleted(Run<?, ?> r, TaskListener listener) {
+    notify(r, listener);
+  }
 
-		public FormValidation doCheckUrl(@QueryParameter String value) {
-			return empty(value);
-		}
-		public FormValidation doCheckUser(@QueryParameter String value) {
-			return  empty(value);
-		}
-		public FormValidation doCheckPassword(@QueryParameter String value) {
-			return empty(value);
-		}
-		public FormValidation doCheckRoom(@QueryParameter String value) {
-			return empty(value);
-		}
+  public void notify(Run<?, ?> run, TaskListener listener) {
+    if (getDescriptor().getNotifyBuilds()) {
+      String resultMessage = run.isBuilding() ? "STARTED" : run.getResult().toString();
+      String message = format("%s, %s, %s, %s", run.getParent().getDisplayName(), run.getDisplayName(), resultMessage, run.getBuildStatusSummary().message);
+      chat(message, listener);
+    }
+    if (getDescriptor().getNotifyViews()) {
+      viewTracker.trackViews(run);
+    } else {
+      viewTracker.disable();
+    }
+  }
 
-		public FormValidation doTestConnection(
-				 @QueryParameter("url") final String url,
-				 @QueryParameter("user") final String user,
-				 @QueryParameter("password") final String password,
-				 @QueryParameter("room") final String room
-				)  {
-			try {
-				RocketChatClient rcClient = new RocketChatClient(url, user, password);
-				Set<Room> publicRooms = rcClient.getPublicRooms();
-				StringBuilder message = new StringBuilder("available rooms are: ");
-				boolean comma = false;
-				for (Room r : publicRooms) {
-					if(r.name.equals(room))
-						return FormValidation.ok("Server version is "+rcClient.getRocketChatVersion());
-					if(comma) message.append(", ");							
-					comma = true;
-					message.append("'"+r.name+"'");
-				}
-				return FormValidation.error("available rooms are "+message);
-			} catch (Exception e) {
-				return FormValidation.error(e.getMessage());
-			}
-		}
-		
-		public RocketChatClient getRocketChatClient() {
-			if(lazyRcClient == null) {
-				lazyRcClient = new RocketChatClient(url, user, password);
-			}
-			return lazyRcClient;
-		}
+  private void chat(String message) {
+    chat(message, null);
+  }
 
-		private FormValidation empty(String value) {
-			return (value == null || value.isEmpty()) ? FormValidation.error("Must not be empty") : FormValidation.ok();
-		}
+  private void chat(final String message, final TaskListener listener) {
+    if (listener != null)
+      listener.getLogger().println(format("Notifying %s/%s '%s'", getDescriptor().getUrl(), getDescriptor().getRoom(), message));
+    try {
+      getDescriptor().getRocketChatClient().send(getDescriptor().getRoom(), message);
+    } catch (IOException e) {
+      e.printStackTrace();
+      if (listener != null) listener.getLogger().println("Rocket.Chat Notification failed");
+    }
+  }
 
-		public boolean isApplicable(Class<? extends AbstractProject> aClass) {
-			return true;
-		}
+  @Extension
+  public static final class DescriptorImpl extends Descriptor<RocketChatNotifier> {
 
-		public String getDisplayName() {
-			return "Rocket.Chat Notifier";
-		}
+    public DescriptorImpl() {
+      load();
+    }
 
-		@Override
-		public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-			req.bindJSON(this, formData);
-			save();
-			return super.configure(req, formData);
-		}
+    private String url;
+    private String user;
+    private String password;
+    private String room;
+    private Boolean notifyBuildsDisabled;
+    private Boolean notifyViewsDisabled;
 
-		@Override
-		public synchronized void load() {
-			lazyRcClient = null;
-			super.load();
-		}
-		
-		@Override
-		public synchronized void save() {
-			lazyRcClient = null;
-			super.save();
-		}
-		
-		public String getUrl() {
-			return url;
-		}
+    private transient RocketChatClient lazyRcClient;
 
-		public void setUrl(String url) {
-			this.url = url;
-		}
+    public FormValidation doCheckUrl(@QueryParameter String value) {
+      return empty(value);
+    }
 
-		public String getUser() {
-			return user;
-		}
+    public FormValidation doCheckUser(@QueryParameter String value) {
+      return empty(value);
+    }
 
-		public void setUser(String user) {
-			this.user = user;
-		}
+    public FormValidation doCheckPassword(@QueryParameter String value) {
+      return empty(value);
+    }
 
-		public String getPassword() {
-			return password;
-		}
+    public FormValidation doCheckRoom(@QueryParameter String value) {
+      return empty(value);
+    }
 
-		public void setPassword(String password) {
-			this.password = password;
-		}
+    public FormValidation doTestConnection(
+        @QueryParameter("url") final String url,
+        @QueryParameter("user") final String user,
+        @QueryParameter("password") final String password,
+        @QueryParameter("room") final String room
+    ) {
+      try {
+        RocketChatClient rcClient = new RocketChatClient(url, user, password);
+        Set<Room> publicRooms = rcClient.getPublicRooms();
+        StringBuilder message = new StringBuilder("available rooms are: ");
+        boolean comma = false;
+        for (Room r : publicRooms) {
+          if (r.name.equals(room))
+            return FormValidation.ok("Server version is " + rcClient.getRocketChatVersion());
+          if (comma) message.append(", ");
+          comma = true;
+          message.append("'" + r.name + "'");
+        }
+        return FormValidation.error("available rooms are " + message);
+      } catch (Exception e) {
+        return FormValidation.error(e.getMessage());
+      }
+    }
 
-		public String getRoom() {
-			return room;
-		}
+    public RocketChatClient getRocketChatClient() {
+      if (lazyRcClient == null) {
+        lazyRcClient = new RocketChatClient(url, user, password);
+      }
+      return lazyRcClient;
+    }
 
-		public void setRoom(String room) {
-			this.room = room;
-		}
-		
-		public boolean getNotifyBuilds() {
-			return getNotifyBuildsDisabled() == null || !getNotifyBuildsDisabled();
-		}
-		
-		public boolean getNotifyViews() {
-			return getNotifyViewsDisabled() == null || !getNotifyViewsDisabled();
-		}
-	
-		public Boolean getNotifyBuildsDisabled() {
-			return notifyBuildsDisabled;
-		}
-		public void setNotifyBuildsDisabled(Boolean notifyBuildsDisabled) {
-			this.notifyBuildsDisabled = notifyBuildsDisabled;
-		}
-		public Boolean getNotifyViewsDisabled() {
-			return notifyViewsDisabled;
-		}
-		public void setNotifyViewsDisabled(Boolean notifyViewsDisabled) {
-			this.notifyViewsDisabled = notifyViewsDisabled;
-		}
+    private FormValidation empty(String value) {
+      return (value == null || value.isEmpty()) ? FormValidation.error("Must not be empty") : FormValidation.ok();
+    }
 
-	}
+    public boolean isApplicable(Class<? extends AbstractProject> aClass) {
+      return true;
+    }
 
-	public DescriptorImpl getDescriptor() {
-		return (DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
-	}
+    public String getDisplayName() {
+      return "Rocket.Chat Notifier";
+    }
+
+    @Override
+    public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
+      req.bindJSON(this, formData);
+      save();
+      return super.configure(req, formData);
+    }
+
+    @Override
+    public synchronized void load() {
+      lazyRcClient = null;
+      super.load();
+    }
+
+    @Override
+    public synchronized void save() {
+      lazyRcClient = null;
+      super.save();
+    }
+
+    public String getUrl() {
+      return url;
+    }
+
+    public void setUrl(String url) {
+      this.url = url;
+    }
+
+    public String getUser() {
+      return user;
+    }
+
+    public void setUser(String user) {
+      this.user = user;
+    }
+
+    public String getPassword() {
+      return password;
+    }
+
+    public void setPassword(String password) {
+      this.password = password;
+    }
+
+    public String getRoom() {
+      return room;
+    }
+
+    public void setRoom(String room) {
+      this.room = room;
+    }
+
+    public boolean getNotifyBuilds() {
+      return getNotifyBuildsDisabled() == null || !getNotifyBuildsDisabled();
+    }
+
+    public boolean getNotifyViews() {
+      return getNotifyViewsDisabled() == null || !getNotifyViewsDisabled();
+    }
+
+    public Boolean getNotifyBuildsDisabled() {
+      return notifyBuildsDisabled;
+    }
+
+    public void setNotifyBuildsDisabled(Boolean notifyBuildsDisabled) {
+      this.notifyBuildsDisabled = notifyBuildsDisabled;
+    }
+
+    public Boolean getNotifyViewsDisabled() {
+      return notifyViewsDisabled;
+    }
+
+    public void setNotifyViewsDisabled(Boolean notifyViewsDisabled) {
+      this.notifyViewsDisabled = notifyViewsDisabled;
+    }
+
+  }
+
+  public DescriptorImpl getDescriptor() {
+    return (DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
+  }
 }

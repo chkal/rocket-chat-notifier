@@ -5,6 +5,6 @@ import hudson.model.View;
 
 public interface ViewListener {
 
-	void fireViewChanged(View view, Result oldResult, Result newResult);
+  void fireViewChanged(View view, Result oldResult, Result newResult);
 
 }
