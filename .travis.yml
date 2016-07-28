@@ -1,16 +1,2 @@
 language: java
-
-script: mvn -DskipTests -Dmaven.test.skip=true clean package site
-
-cache:
-  directories:
-  - ~/.m2
-
-branches:
-  only:
-    - master
-
-install:
-  -
-    
-    
+jdk: oraclejdk8
