@@ -1,16 +1,7 @@
 package de.chkal.jenkins.rocketchat;
 
-import static java.lang.String.format;
-
-import java.io.IOException;
-import java.util.Set;
-
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-
 import com.github.baloise.rocketchatrestclient.RocketChatClient;
 import com.github.baloise.rocketchatrestclient.model.Room;
-
 import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.model.AbstractProject;
@@ -19,43 +10,100 @@ import hudson.model.Descriptor;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.model.View;
 import hudson.model.listeners.RunListener;
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+
+import java.io.IOException;
+import java.util.Set;
+
+import static java.lang.String.format;
 
 @Extension
-public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Describable<RocketChatNotifier>, ExtensionPoint {
+public class RocketChatNotifier extends RunListener implements Describable<RocketChatNotifier>, ExtensionPoint {
 
   @Override
-  public void onStarted(Run<?, ?> r, TaskListener listener) {
-    notify(r, listener);
+  public void onStarted(Run run, TaskListener listener) {
+    // nothing to do here
   }
 
   @Override
-  public void onCompleted(Run<?, ?> r, TaskListener listener) {
-    notify(r, listener);
+  public void onCompleted(Run run, TaskListener listener) {
+
+    String notifyText = getNotifyText(run);
+
+    if (notifyText != null) {
+
+      StringBuilder message = new StringBuilder();
+
+      message.append(run.getFullDisplayName());
+      message.append(": ");
+      message.append(notifyText);
+      message.append(" (");
+      message.append(run.getBuildStatusSummary());
+      message.append(")");
+
+      chat(message.toString(), listener);
+
+    }
+
   }
 
-  public void notify(Run<?, ?> run, TaskListener listener) {
-    String resultMessage = run.isBuilding() ? "STARTED" : run.getResult().toString();
-    String message = format("%s, %s, %s, %s", run.getParent().getDisplayName(), run.getDisplayName(), resultMessage, run.getBuildStatusSummary().message);
-    chat(message, listener);
+  private String getNotifyText(Run run) {
+
+    Result result = run.getResult();
+    Result previous = run.getPreviousBuild() != null ? run.getPreviousBuild().getResult() : null;
+
+    // compare result 
+    if (previous != null) {
+
+      if (isFailed(result) && result.equals(previous)) {
+        return "Build still " + result.toString();
+      }
+
+      if (isFailed(previous) && !isFailed(result)) {
+        return "Build back to " + result.toString();
+      }
+
+      if (!isFailed(previous) && isFailed(result)) {
+        return "Build status " + result.toString();
+      }
+
+    }
+
+    // no previous build
+    else {
+      if (isFailed(result)) {
+        return "Build status " + result.toString();
+      }
+    }
+
   }
 
-  private void chat(String message) {
-    chat(message, null);
+  private boolean isFailed(Result result) {
+    return result == Result.FAILURE || result == Result.NOT_BUILT || result == Result.UNSTABLE;
   }
 
-  private void chat(final String message, final TaskListener listener) {
-    if (listener != null)
-      listener.getLogger().println(format("Notifying %s/%s '%s'", getDescriptor().getUrl(), getDescriptor().getRoom(), message));
+  private void chat(String message, TaskListener listener) {
+
+    String room = getDescriptor().getRoom();
+
+    listener.getLogger().println(
+        format("Notifying %s/%s '%s'", getDescriptor().getUrl(), room, message)
+    );
+
     try {
-      getDescriptor().getRocketChatClient().send(getDescriptor().getRoom(), message);
+
+      RocketChatClient client = getDescriptor().getRocketChatClient();
+
+      client.send(room, message);
+
     } catch (IOException e) {
-      e.printStackTrace();
-      if (listener != null) listener.getLogger().println("Rocket.Chat Notification failed");
+      listener.getLogger().println("Rocket.Chat notification failed: " + e.getMessage());
+      e.printStackTrace(listener.getLogger());
     }
   }
 
