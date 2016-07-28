@@ -26,15 +26,7 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 @Extension
-public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Describable<RocketChatNotifier>, ExtensionPoint, ViewListener {
-
-
-  ViewTracker viewTracker = new ViewTracker().addViewListener(this);
-
-  @Override
-  public void fireViewChanged(View view, Result oldResult, Result newResult) {
-    chat(format("view/%s, %s -> %s", view.getDisplayName(), oldResult, newResult));
-  }
+public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Describable<RocketChatNotifier>, ExtensionPoint {
 
   @Override
   public void onStarted(Run<?, ?> r, TaskListener listener) {
@@ -47,16 +39,9 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
   }
 
   public void notify(Run<?, ?> run, TaskListener listener) {
-    if (getDescriptor().getNotifyBuilds()) {
-      String resultMessage = run.isBuilding() ? "STARTED" : run.getResult().toString();
-      String message = format("%s, %s, %s, %s", run.getParent().getDisplayName(), run.getDisplayName(), resultMessage, run.getBuildStatusSummary().message);
-      chat(message, listener);
-    }
-    if (getDescriptor().getNotifyViews()) {
-      viewTracker.trackViews(run);
-    } else {
-      viewTracker.disable();
-    }
+    String resultMessage = run.isBuilding() ? "STARTED" : run.getResult().toString();
+    String message = format("%s, %s, %s, %s", run.getParent().getDisplayName(), run.getDisplayName(), resultMessage, run.getBuildStatusSummary().message);
+    chat(message, listener);
   }
 
   private void chat(String message) {
@@ -85,8 +70,6 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
     private String user;
     private String password;
     private String room;
-    private Boolean notifyBuildsDisabled;
-    private Boolean notifyViewsDisabled;
 
     private transient RocketChatClient lazyRcClient;
 
@@ -198,30 +181,6 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
 
     public void setRoom(String room) {
       this.room = room;
-    }
-
-    public boolean getNotifyBuilds() {
-      return getNotifyBuildsDisabled() == null || !getNotifyBuildsDisabled();
-    }
-
-    public boolean getNotifyViews() {
-      return getNotifyViewsDisabled() == null || !getNotifyViewsDisabled();
-    }
-
-    public Boolean getNotifyBuildsDisabled() {
-      return notifyBuildsDisabled;
-    }
-
-    public void setNotifyBuildsDisabled(Boolean notifyBuildsDisabled) {
-      this.notifyBuildsDisabled = notifyBuildsDisabled;
-    }
-
-    public Boolean getNotifyViewsDisabled() {
-      return notifyViewsDisabled;
-    }
-
-    public void setNotifyViewsDisabled(Boolean notifyViewsDisabled) {
-      this.notifyViewsDisabled = notifyViewsDisabled;
     }
 
   }

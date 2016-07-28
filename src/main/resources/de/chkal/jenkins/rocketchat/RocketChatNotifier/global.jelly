@@ -9,12 +9,6 @@
     they use. Views are always organized according to its owner class, so it 
     should be straightforward to find them. -->
   <f:section title="Rocket.Chat Notifier">
-    <f:entry title="Disable build notifications" field="notifyBuildsDisabled">
-      <f:checkbox default="checked"/>
-    </f:entry>
-    <f:entry title="Disable view notifications" field="notifyViewsDisabled">
-      <f:checkbox default="checked"/>
-    </f:entry>
     <f:entry title="URL" field="url">
       <f:textbox />
     </f:entry>
