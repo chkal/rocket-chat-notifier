@@ -81,6 +81,8 @@ public class RocketChatNotifier extends RunListener implements Describable<Rocke
       }
     }
 
+    return null;
+    
   }
 
   private boolean isFailed(Result result) {
