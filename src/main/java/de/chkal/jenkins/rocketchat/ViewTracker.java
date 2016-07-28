@@ -1,4 +1,4 @@
-package com.baloise.jenkins.plugin;
+package de.chkal.jenkins.rocketchat;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

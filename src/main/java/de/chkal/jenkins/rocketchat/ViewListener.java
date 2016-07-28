@@ -1,4 +1,4 @@
-package com.baloise.jenkins.plugin;
+package de.chkal.jenkins.rocketchat;
 
 import hudson.model.Result;
 import hudson.model.View;
