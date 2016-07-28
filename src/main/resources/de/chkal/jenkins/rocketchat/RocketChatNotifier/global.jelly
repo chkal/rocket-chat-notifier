@@ -9,6 +9,9 @@
     they use. Views are always organized according to its owner class, so it 
     should be straightforward to find them. -->
   <f:section title="Rocket.Chat Notifier">
+    <f:entry title="Enable notifications" field="enableNotifications">
+      <f:checkbox />
+    </f:entry>
     <f:entry title="URL" field="url">
       <f:textbox />
     </f:entry>
@@ -20,6 +23,9 @@
     </f:entry>
     <f:entry title="Password" field="password">
       <f:password />
+    </f:entry>
+    <f:entry title="Use @all mentions" field="useAllMentions">
+      <f:checkbox />
     </f:entry>
     <f:validateButton title="${%Test Connection}"
       progress="${%Testing...}" method="testConnection" with="url,room,user,password" />

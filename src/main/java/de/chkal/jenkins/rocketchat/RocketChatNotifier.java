@@ -28,11 +28,27 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
   @Override
   public void onCompleted(Run<?, ?> run, TaskListener listener) {
 
+    if (!Boolean.TRUE.equals(getDescriptor().getEnableNotifications())) {
+      return;
+    }
+
     String notifyText = getNotifyText(run);
 
     if (notifyText != null) {
-      String message = String.format("%s: %s", run.getFullDisplayName(), notifyText);
-      chat(message, listener);
+
+      StringBuilder message = new StringBuilder();
+
+      if (Boolean.TRUE.equals(getDescriptor().getUseAllMentions())) {
+        message.append("@all ");
+      }
+
+      message.append("Build *");
+      message.append(run.getFullDisplayName());
+      message.append("*: ");
+      message.append(notifyText);
+
+      chat(message.toString(), listener);
+
     }
 
   }
@@ -46,15 +62,15 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
     if (previous != null) {
 
       if (isFailed(result) && result.equals(previous)) {
-        return "Job status is still " + result.toString();
+        return String.format("Status is still *%s*", result.toString());
       }
 
       if (isFailed(previous) && !isFailed(result)) {
-        return "Job is back to " + result.toString();
+        return String.format("Status is back to *%s*", result.toString());
       }
 
       if (!isFailed(previous) && isFailed(result)) {
-        return "Job status is " + result.toString();
+        return String.format("Status is *%s*", result.toString());
       }
 
     }
@@ -62,7 +78,7 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
     // no previous build
     else {
       if (isFailed(result)) {
-        return "Job status is " + result.toString();
+        return String.format("Status is *%s*", result.toString());
       }
     }
 
@@ -101,10 +117,12 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
       load();
     }
 
+    private Boolean enableNotifications;
     private String url;
     private String user;
     private String password;
     private String room;
+    private Boolean useAllMentions;
 
     private transient RocketChatClient lazyRcClient;
 
@@ -218,6 +236,21 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
       this.room = room;
     }
 
+    public Boolean getUseAllMentions() {
+      return useAllMentions;
+    }
+
+    public void setUseAllMentions(Boolean useAllMentions) {
+      this.useAllMentions = useAllMentions;
+    }
+
+    public Boolean getEnableNotifications() {
+      return enableNotifications;
+    }
+
+    public void setEnableNotifications(Boolean enableNotifications) {
+      this.enableNotifications = enableNotifications;
+    }
   }
 
   public DescriptorImpl getDescriptor() {
