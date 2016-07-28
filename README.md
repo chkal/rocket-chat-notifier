@@ -1,5 +1,7 @@
 # rocket-chat-notifier
 
+[![Build Status](https://travis-ci.org/chkal/rocket-chat-notifier.svg?branch=master)](https://travis-ci.org/chkal/rocket-chat-notifier)
+
 Fork of the [rocket-chat-notifier](https://github.com/baloise/rocket-chat-notifier) plugin
 by [baloise](https://github.com/baloise).
 
@@ -8,11 +10,12 @@ by [baloise](https://github.com/baloise).
 Clone the project and build it:
 
     git clone https://github.com/chkal/rocket-chat-notifier.git
-    cd rocket-chat-notifier && mvn install -DskipTests
+    cd rocket-chat-notifier
+    mvn install -DskipTests
     
 Now copy the resulting HPI file to the Jenkins plugins directory:
 
-    cp cp target/rocket-chat-notifier.hpi $JENKINS_HOME/plugins
+    cp target/rocket-chat-notifier.hpi $JENKINS_HOME/plugins
 
 Restart Jenkins!
 
