@@ -15,14 +15,14 @@
     <f:entry title="URL" field="url">
       <f:textbox />
     </f:entry>
-    <f:entry title="Room" field="room">
-      <f:textbox />
-    </f:entry>
-    <f:entry title="User ID" field="user">
+    <f:entry title="Username" field="user">
       <f:textbox />
     </f:entry>
     <f:entry title="Password" field="password">
       <f:password />
+    </f:entry>
+    <f:entry title="Chat Room" field="room">
+      <f:textbox />
     </f:entry>
     <f:entry title="Use @all mentions" field="useAllMentions">
       <f:checkbox />

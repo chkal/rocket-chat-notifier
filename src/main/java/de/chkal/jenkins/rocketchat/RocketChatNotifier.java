@@ -113,11 +113,8 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
   @Extension
   public static final class DescriptorImpl extends Descriptor<RocketChatNotifier> {
 
-    public DescriptorImpl() {
-      load();
-    }
-
     private Boolean enableNotifications;
+
     private String url;
     private String user;
     private String password;
@@ -126,41 +123,45 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
 
     private transient RocketChatClient lazyRcClient;
 
+    public DescriptorImpl() {
+      load();
+    }
+
     public FormValidation doCheckUrl(@QueryParameter String value) {
-      return empty(value);
-    }
-
-    public FormValidation doCheckUser(@QueryParameter String value) {
-      return empty(value);
-    }
-
-    public FormValidation doCheckPassword(@QueryParameter String value) {
-      return empty(value);
-    }
-
-    public FormValidation doCheckRoom(@QueryParameter String value) {
-      return empty(value);
+      if (value != null && !value.trim().isEmpty()) {
+        if (!value.trim().startsWith("http")) {
+          return FormValidation.error("This doesn't look like a correct URL");
+        }
+      }
+      return FormValidation.ok();
     }
 
     public FormValidation doTestConnection(
         @QueryParameter("url") final String url,
         @QueryParameter("user") final String user,
         @QueryParameter("password") final String password,
-        @QueryParameter("room") final String room
-    ) {
+        @QueryParameter("room") final String room) {
+
       try {
-        RocketChatClient rcClient = new RocketChatClient(url, user, password);
-        Set<Room> publicRooms = rcClient.getPublicRooms();
+
+        RocketChatClient client = new RocketChatClient(url, user, password);
+        Set<Room> publicRooms = client.getPublicRooms();
+
         StringBuilder message = new StringBuilder("available rooms are: ");
         boolean comma = false;
         for (Room r : publicRooms) {
-          if (r.name.equals(room))
-            return FormValidation.ok("Server version is " + rcClient.getRocketChatVersion());
-          if (comma) message.append(", ");
+          if (r.name.equals(room)) {
+            return FormValidation.ok("Server version is " + client.getRocketChatVersion());
+          }
+          if (comma) {
+            message.append(", ");
+          }
           comma = true;
-          message.append("'" + r.name + "'");
+          message.append("'").append(r.name).append("'");
         }
+        
         return FormValidation.error("available rooms are " + message);
+
       } catch (Exception e) {
         return FormValidation.error(e.getMessage());
       }
@@ -171,14 +172,6 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
         lazyRcClient = new RocketChatClient(url, user, password);
       }
       return lazyRcClient;
-    }
-
-    private FormValidation empty(String value) {
-      return (value == null || value.isEmpty()) ? FormValidation.error("Must not be empty") : FormValidation.ok();
-    }
-
-    public boolean isApplicable(Class<? extends AbstractProject> aClass) {
-      return true;
     }
 
     public String getDisplayName() {
