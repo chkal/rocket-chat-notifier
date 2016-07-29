@@ -5,13 +5,24 @@
 Fork of the [rocket-chat-notifier](https://github.com/baloise/rocket-chat-notifier) plugin
 by [baloise](https://github.com/baloise).
 
+This plugin supports:
+
+  * Configuration of a single Rocket.Chat server for the entire Jenkins instance
+  * Send chat notification to a Rocket.Chat room if any build starts failing, is still
+    failing or gets back to stable state.
+  * Allows to notify all users by including `@all` in the notify message.
+
+The plugin does NOT support:
+
+  * Different notification settings for individual jobs
+
 ## Installation
 
 Clone the project and build it:
 
     git clone https://github.com/chkal/rocket-chat-notifier.git
     cd rocket-chat-notifier
-    mvn install -DskipTests
+    mvn -DskipTests clean install
     
 Now copy the resulting HPI file to the Jenkins plugins directory:
 
