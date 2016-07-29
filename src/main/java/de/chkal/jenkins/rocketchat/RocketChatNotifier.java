@@ -144,7 +144,7 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
 
       try {
 
-        RocketChatClient client = new RocketChatClient(url, user, password);
+        RocketChatClient client = new RocketChatClient(ensureTrailingSlash(url), user, password);
         Set<Room> publicRooms = client.getPublicRooms();
 
         StringBuilder message = new StringBuilder("available rooms are: ");
@@ -159,7 +159,7 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
           comma = true;
           message.append("'").append(r.name).append("'");
         }
-        
+
         return FormValidation.error("available rooms are " + message);
 
       } catch (Exception e) {
@@ -169,9 +169,20 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
 
     public RocketChatClient getRocketChatClient() {
       if (lazyRcClient == null) {
-        lazyRcClient = new RocketChatClient(url, user, password);
+        lazyRcClient = new RocketChatClient(ensureTrailingSlash(url), user, password);
       }
       return lazyRcClient;
+    }
+
+    private static String ensureTrailingSlash(String s) {
+      if (s != null) {
+        if (s.endsWith("/")) {
+          return s;
+        } else {
+          return s + "/";
+        }
+      }
+      return null;
     }
 
     public String getDisplayName() {
