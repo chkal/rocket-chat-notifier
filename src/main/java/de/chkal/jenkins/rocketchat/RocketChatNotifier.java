@@ -1,13 +1,9 @@
 package de.chkal.jenkins.rocketchat;
 
-import com.github.baloise.rocketchatrestclient.RocketChatClient;
-import com.github.baloise.rocketchatrestclient.model.Room;
 import hudson.Extension;
 import hudson.ExtensionPoint;
-import hudson.model.AbstractProject;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
-import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
@@ -17,8 +13,8 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.Set;
 
 import static java.lang.String.format;
 
@@ -26,87 +22,33 @@ import static java.lang.String.format;
 public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Describable<RocketChatNotifier>, ExtensionPoint {
 
   @Override
-  public void onCompleted(Run<?, ?> run, TaskListener listener) {
+  public void onCompleted(Run<?, ?> run, @Nonnull TaskListener listener) {
 
     if (!Boolean.TRUE.equals(getDescriptor().getEnableNotifications())) {
       return;
     }
 
-    String notifyText = getNotifyText(run);
+    boolean useAllMentions = Boolean.TRUE.equals(getDescriptor().getUseAllMentions());
+    NotificationManager notificationManager = new NotificationManager();
 
-    if (notifyText != null) {
-
-      StringBuilder message = new StringBuilder();
-
-      if (Boolean.TRUE.equals(getDescriptor().getUseAllMentions())) {
-        message.append("@all ");
-      }
-
-      message.append("Build *");
-      message.append(run.getFullDisplayName());
-      message.append("*: ");
-      message.append(notifyText);
-
-      chat(message.toString(), listener);
-
+    Notification notification = notificationManager.createNotification(run);
+    if (notification != null) {
+      sendNotification(notification, useAllMentions, listener);
     }
 
   }
 
-  private String getNotifyText(Run run) {
+  private void sendNotification(Notification notification, boolean useAllMentions, TaskListener listener) {
 
-    Result result = run.getResult();
-    Result previous = run.getPreviousBuild() != null ? run.getPreviousBuild().getResult() : null;
-
-    // compare result 
-    if (previous != null) {
-
-      if (isFailed(result) && result.equals(previous)) {
-        return String.format("Status is still *%s*", result.toString());
-      }
-
-      if (isFailed(previous) && !isFailed(result)) {
-        return String.format("Status is back to *%s*", result.toString());
-      }
-
-      if (!isFailed(previous) && isFailed(result)) {
-        return String.format("Status is *%s*", result.toString());
-      }
-
-    }
-
-    // no previous build
-    else {
-      if (isFailed(result)) {
-        return String.format("Status is *%s*", result.toString());
-      }
-    }
-
-    return null;
-
-  }
-
-  private boolean isFailed(Result result) {
-    return result == Result.FAILURE || result == Result.NOT_BUILT || result == Result.UNSTABLE;
-  }
-
-  private void chat(String message, TaskListener listener) {
-
-    String room = getDescriptor().getRoom();
-
-    listener.getLogger().println(
-        format("Notifying %s/%s '%s'", getDescriptor().getUrl(), room, message)
-    );
+    listener.getLogger().println(format("Sending notify: '%s'", notification.toString()));
 
     try {
 
       RocketChatClient client = getDescriptor().getRocketChatClient();
-
-      client.send(room, message);
+      client.send(notification, useAllMentions);
 
     } catch (IOException e) {
       listener.getLogger().println("Rocket.Chat notification failed: " + e.getMessage());
-      e.printStackTrace(listener.getLogger());
     }
   }
 
@@ -115,13 +57,11 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
 
     private Boolean enableNotifications;
 
-    private String url;
-    private String user;
-    private String password;
-    private String room;
+    private String webhook;
+
     private Boolean useAllMentions;
 
-    private transient RocketChatClient lazyRcClient;
+    private transient RocketChatClient rocketChatClient;
 
     public DescriptorImpl() {
       load();
@@ -136,31 +76,21 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
       return FormValidation.ok();
     }
 
-    public FormValidation doTestConnection(
-        @QueryParameter("url") final String url,
-        @QueryParameter("user") final String user,
-        @QueryParameter("password") final String password,
-        @QueryParameter("room") final String room) {
+    public FormValidation doTestConnection(@QueryParameter("webhook") String webhook) {
 
       try {
 
-        RocketChatClient client = new RocketChatClient(ensureTrailingSlash(url), user, password);
-        Set<Room> publicRooms = client.getPublicRooms();
-
-        StringBuilder message = new StringBuilder("available rooms are: ");
-        boolean comma = false;
-        for (Room r : publicRooms) {
-          if (r.name.equals(room)) {
-            return FormValidation.ok("Server version is " + client.getRocketChatVersion());
-          }
-          if (comma) {
-            message.append(", ");
-          }
-          comma = true;
-          message.append("'").append(r.name).append("'");
+        if (webhook == null || webhook.trim().isEmpty()) {
+          return FormValidation.error("Webhook is missing");
         }
 
-        return FormValidation.error("available rooms are " + message);
+        Notification notification = new Notification();
+        notification.setText("Ping!");
+
+        RocketChatClient client = new RocketChatClient(webhook);
+        client.send(notification, useAllMentions);
+
+        return FormValidation.ok("Everything works fine!");
 
       } catch (Exception e) {
         return FormValidation.error(e.getMessage());
@@ -168,21 +98,10 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
     }
 
     public RocketChatClient getRocketChatClient() {
-      if (lazyRcClient == null) {
-        lazyRcClient = new RocketChatClient(ensureTrailingSlash(url), user, password);
+      if (rocketChatClient == null) {
+        rocketChatClient = new RocketChatClient(webhook);
       }
-      return lazyRcClient;
-    }
-
-    private static String ensureTrailingSlash(String s) {
-      if (s != null) {
-        if (s.endsWith("/")) {
-          return s;
-        } else {
-          return s + "/";
-        }
-      }
-      return null;
+      return rocketChatClient;
     }
 
     public String getDisplayName() {
@@ -198,46 +117,22 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
 
     @Override
     public synchronized void load() {
-      lazyRcClient = null;
+      rocketChatClient = null;
       super.load();
     }
 
     @Override
     public synchronized void save() {
-      lazyRcClient = null;
+      rocketChatClient = null;
       super.save();
     }
 
-    public String getUrl() {
-      return url;
+    public String getWebhook() {
+      return webhook;
     }
 
-    public void setUrl(String url) {
-      this.url = url;
-    }
-
-    public String getUser() {
-      return user;
-    }
-
-    public void setUser(String user) {
-      this.user = user;
-    }
-
-    public String getPassword() {
-      return password;
-    }
-
-    public void setPassword(String password) {
-      this.password = password;
-    }
-
-    public String getRoom() {
-      return room;
-    }
-
-    public void setRoom(String room) {
-      this.room = room;
+    public void setWebhook(String webhook) {
+      this.webhook = webhook;
     }
 
     public Boolean getUseAllMentions() {
@@ -260,4 +155,5 @@ public class RocketChatNotifier extends RunListener<Run<?, ?>> implements Descri
   public DescriptorImpl getDescriptor() {
     return (DescriptorImpl) Jenkins.getInstance().getDescriptorOrDie(getClass());
   }
+
 }
